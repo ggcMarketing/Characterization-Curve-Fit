@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ion Chamber Calibration: Masters-Finder!</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; min-height: 100vh; padding: 16px; font-size: 14px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%); color: white; padding: 16px 20px; border-radius: 10px 10px 0 0; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 1.25rem; font-weight: 600; }
+        .header .subtitle { font-size: 0.8rem; opacity: 0.8; margin-top: 2px; }
+        .main { background: white; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 16px; }
+        .info-box { background: #ebf8ff; border: 1px solid #90cdf4; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; font-size: 0.85rem; color: #2c5282; }
+        .btn-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
+        .btn { padding: 8px 16px; border: none; border-radius: 5px; font-size: 0.85rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
+        .btn-blue { background: #3182ce; color: white; }
+        .btn-blue:hover { background: #2c5282; }
+        .btn-orange { background: #dd6b20; color: white; }
+        .btn-orange:hover { background: #c05621; }
+        .btn-green { background: #38a169; color: white; }
+        .btn-green:hover { background: #2f855a; }
+        .btn-gray { background: #e2e8f0; color: #4a5568; }
+        .btn-gray:hover { background: #cbd5e0; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .spacer { flex: 1; }
+        .settings { display: flex; gap: 16px; align-items: center; margin-bottom: 12px; padding: 10px; background: #f7fafc; border-radius: 6px; flex-wrap: wrap; font-size: 0.85rem; }
+        .settings label { display: flex; align-items: center; gap: 6px; color: #4a5568; }
+        .settings select, .settings input { padding: 4px 8px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 0.85rem; }
+        .settings input { width: 60px; }
+        .rsq-display { font-family: 'Consolas', monospace; }
+        .rsq-display .arrow { margin: 0 6px; color: #a0aec0; }
+        .rsq-display .optimized { color: #22543d; font-weight: 600; }
+        .rsq-display .delta { margin-left: 8px; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; }
+        .delta-pos { background: #c6f6d5; color: #22543d; }
+        .delta-neg { background: #fed7d7; color: #822727; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+        .panel { border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; }
+        .panel-head { background: #f7fafc; padding: 8px 12px; font-weight: 600; font-size: 0.85rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+        .panel-head .sub { font-weight: normal; color: #718096; font-size: 0.75rem; }
+        .panel-body { padding: 8px; }
+        .scroll-table { max-height: 280px; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        th { background: #f7fafc; padding: 6px 8px; text-align: center; font-weight: 600; color: #4a5568; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; }
+        td { padding: 4px 8px; text-align: center; border-bottom: 1px solid #f0f0f0; }
+        td input { width: 100%; padding: 4px 6px; border: 1px solid #e2e8f0; border-radius: 3px; text-align: right; font-family: 'Consolas', monospace; font-size: 0.8rem; }
+        td input:focus { outline: none; border-color: #3182ce; }
+        td .optimized { background: #f0fff4; border-color: #9ae6b4; }
+        .pct { padding: 2px 6px; border-radius: 3px; font-weight: 600; font-size: 0.75rem; display: inline-block; min-width: 55px; }
+        .pct-good { background: #c6f6d5; color: #22543d; }
+        .pct-warn { background: #fefcbf; color: #744210; }
+        .pct-bad { background: #fed7d7; color: #822727; }
+        .cal-table { font-family: 'Consolas', monospace; }
+        .cal-table th, .cal-table td { text-align: right; }
+        .range-tabs { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
+        .range-tab { padding: 4px 10px; border: 1px solid #e2e8f0; border-radius: 4px; background: white; cursor: pointer; font-size: 0.75rem; }
+        .range-tab:hover { background: #f7fafc; }
+        .range-tab.active { background: #3182ce; color: white; border-color: #3182ce; }
+        .log { background: #1a202c; color: #e2e8f0; padding: 10px; border-radius: 6px; font-family: 'Consolas', monospace; font-size: 0.75rem; height: 100px; overflow-y: auto; }
+        .log-success { color: #68d391; }
+        .log-warn { color: #f6e05e; }
+        .log-error { color: #fc8181; }
+        .log-info { color: #63b3ed; }
+        .status { display: flex; gap: 8px; }
+        .status span { padding: 3px 10px; border-radius: 10px; font-size: 0.7rem; font-weight: 500; }
+        .status-ok { background: #48bb78; }
+        .status-no { background: rgba(245,101,101,0.8); }
+        .result-bar { margin-top: 12px; padding: 10px; border-radius: 6px; font-size: 0.85rem; }
+        .result-ok { background: #f0fff4; border: 1px solid #9ae6b4; color: #22543d; }
+        .result-warn { background: #fffff0; border: 1px solid #ecc94b; color: #744210; }
+        .empty { text-align: center; padding: 30px; color: #a0aec0; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script src="app.js"></script>
+</body>
+</html>
