@@ -10,6 +10,7 @@ class MastersFinder {
         this.running = false;
         this.magOk = false;
         this.calOk = false;
+        this.exportFormat = 'ini';
         
         this.render();
     }
@@ -166,24 +167,30 @@ class MastersFinder {
         }
     }
     
-    exportFile() {
+    async exportFile(format = 'legacy') {
         if (!this.result) return;
         
-        const lines = [
-            '// Optimized Magazine Values',
-            `// R²: ${this.result.origRSq.toFixed(10)} → ${this.result.optRSq.toFixed(10)}`,
-            `// Generated: ${new Date().toISOString()}`,
-            ...this.result.opt.map((v, i) => ` ${i + 1}, ${v.toFixed(6)}`),
-            'END'
-        ];
-        
-        const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'Magazine_Values_Optimized.txt';
-        a.click();
-        
-        this.log('✓ Exported to Magazine_Values_Optimized.txt', 'success');
+        try {
+            const response = await fetch('/api/export-magazine', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    masters: this.result.opt,
+                    format: format
+                })
+            });
+            
+            const data = await response.json();
+            const blob = new Blob([data.content], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = data.filename;
+            a.click();
+            
+            this.log(`✓ Exported to ${data.filename}`, 'success');
+        } catch (err) {
+            this.log(`✗ Export error: ${err.message}`, 'error');
+        }
     }
     
     updateMaster(index, value) {
@@ -232,6 +239,12 @@ class MastersFinder {
                         </button>
                         <button class="btn btn-gray" id="apply-btn" ${!this.result ? 'disabled' : ''}>✅ Apply</button>
                         <button class="btn btn-gray" id="export-btn" ${!this.result ? 'disabled' : ''}>💾 Export</button>
+                        ${this.result ? `
+                            <select id="export-format" style="padding: 6px 8px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 0.85rem;">
+                                <option value="ini" ${this.exportFormat === 'ini' ? 'selected' : ''}>INI Format</option>
+                                <option value="legacy" ${this.exportFormat === 'legacy' ? 'selected' : ''}>Legacy Format</option>
+                            </select>
+                        ` : ''}
                     </div>
                     <div class="settings">
                         <label>Polynomial Order:
@@ -359,7 +372,11 @@ class MastersFinder {
         document.getElementById('sample-btn')?.addEventListener('click', () => this.generateSample());
         document.getElementById('opt-btn')?.addEventListener('click', () => this.optimize());
         document.getElementById('apply-btn')?.addEventListener('click', () => this.apply());
-        document.getElementById('export-btn')?.addEventListener('click', () => this.exportFile());
+        document.getElementById('export-btn')?.addEventListener('click', () => this.exportFile(this.exportFormat));
+        
+        document.getElementById('export-format')?.addEventListener('change', e => {
+            this.exportFormat = e.target.value;
+        });
         
         document.getElementById('order-sel')?.addEventListener('change', e => {
             this.order = parseInt(e.target.value);

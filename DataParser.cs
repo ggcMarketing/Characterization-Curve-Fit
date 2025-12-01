@@ -2,6 +2,52 @@ public class DataParser
 {
     public double[] ParseMagazine(string content)
     {
+        // Detect format: INI or legacy CSV
+        if (content.Contains("[__________ Magazine Thickness Values __________]"))
+        {
+            return ParseMagazineIni(content);
+        }
+        else
+        {
+            return ParseMagazineLegacy(content);
+        }
+    }
+    
+    private double[] ParseMagazineIni(string content)
+    {
+        var values = new List<double>();
+        bool inMagazineSection = false;
+        
+        foreach (var line in content.Split('\n'))
+        {
+            var trimmed = line.Trim();
+            
+            if (trimmed.Contains("[__________ Magazine Thickness Values __________]"))
+            {
+                inMagazineSection = true;
+                continue;
+            }
+            
+            if (inMagazineSection && trimmed.StartsWith("["))
+            {
+                break; // End of magazine section
+            }
+            
+            if (inMagazineSection && trimmed.StartsWith("MagStandard"))
+            {
+                var parts = trimmed.Split('=');
+                if (parts.Length == 2 && double.TryParse(parts[1].Trim(), out double value) && value > 0)
+                {
+                    values.Add(value);
+                }
+            }
+        }
+        
+        return values.ToArray();
+    }
+    
+    private double[] ParseMagazineLegacy(string content)
+    {
         var values = new List<double>();
         
         foreach (var line in content.Split('\n'))
@@ -21,6 +67,83 @@ public class DataParser
     }
     
     public CalibrationRange[] ParseCalibration(string content, double[] masters)
+    {
+        // Detect format: INI or legacy CSV
+        if (content.Contains("[__________ Range"))
+        {
+            return ParseCalibrationIni(content, masters);
+        }
+        else
+        {
+            return ParseCalibrationLegacy(content, masters);
+        }
+    }
+    
+    private CalibrationRange[] ParseCalibrationIni(string content, double[] masters)
+    {
+        var ranges = new List<CalibrationRange>();
+        var lines = content.Split('\n');
+        int currentRangeId = -1;
+        var currentPoints = new List<CalibrationPoint>();
+        int samples = 0;
+        
+        for (int i = 0; i < lines.Length; i++)
+        {
+            var trimmed = lines[i].Trim();
+            
+            // Check for range section header
+            var rangeMatch = System.Text.RegularExpressions.Regex.Match(trimmed, @"\[__________\s+Range\s+(\d+)__________\]");
+            if (rangeMatch.Success)
+            {
+                // Save previous range if it has data
+                if (currentPoints.Count > 0)
+                {
+                    ranges.Add(new CalibrationRange(currentRangeId + 1, currentPoints.ToArray()));
+                }
+                
+                currentRangeId = int.Parse(rangeMatch.Groups[1].Value);
+                currentPoints = new List<CalibrationPoint>();
+                samples = 0;
+                continue;
+            }
+            
+            // Get sample count for current range
+            if (trimmed.StartsWith("Samples="))
+            {
+                samples = int.Parse(trimmed.Split('=')[1]);
+                continue;
+            }
+            
+            // Parse data points (format: index=thickness,voltage,ln(voltage),masters)
+            if (samples > 0 && System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"^\d+="))
+            {
+                var parts = trimmed.Split('=');
+                if (parts.Length == 2)
+                {
+                    var values = parts[1].Split(',');
+                    if (values.Length >= 4)
+                    {
+                        if (double.TryParse(values[0], out double thickness) &&
+                            double.TryParse(values[1], out double voltage) &&
+                            int.TryParse(values[3], out int mastersIdx))
+                        {
+                            currentPoints.Add(new CalibrationPoint(voltage, thickness, mastersIdx));
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Add last range if it has data
+        if (currentPoints.Count > 0)
+        {
+            ranges.Add(new CalibrationRange(currentRangeId + 1, currentPoints.ToArray()));
+        }
+        
+        return ranges.ToArray();
+    }
+    
+    private CalibrationRange[] ParseCalibrationLegacy(string content, double[] masters)
     {
         var ranges = new List<CalibrationRange>();
         List<CalibrationPoint>? currentPoints = null;

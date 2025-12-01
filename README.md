@@ -110,7 +110,22 @@ Parses calibration data file.
 
 ## File Formats
 
-### Magazine Values Format
+The tool supports both legacy and modern INI-based file formats.
+
+### Magazine Values Formats
+
+**INI Format (Perfecta II):**
+```ini
+[__________ General __________]
+Time Stamp=10/16/2025 4:17:24 PM
+[__________ Magazine Thickness Values __________]
+MagStandard00=0.00101000003814697
+MagStandard01=0.00203999996185303
+MagStandard02=0.004025
+...
+```
+
+**Legacy Format:**
 ```
 // Comment lines start with //
 1, 25.461380
@@ -120,7 +135,30 @@ Parses calibration data file.
 END
 ```
 
-### Calibration Data Format
+### Calibration Data Formats
+
+**INI Format (Perfecta II):**
+```ini
+[__________ General __________]
+Time Stamp=10/20/2025 3:28:38 PM
+CalibrationStart=0.014
+CalibrationEnd=0.299997194388778
+CalibrationStep=0.004
+CalibrationOverlap=0
+[__________ Range 0__________]
+Samples=21
+KV=65.4633178710938
+Gain=0.100000001490116
+ThickHigh=0.0910729989409447
+ThickLow=0.0110039999708533
+Thickness0=0.0110039999708533
+Voltage0=19.0028648376465
+ln(Voltage)0=2.94458985328674
+Masters0=17
+...
+```
+
+**Legacy Format:**
 ```
 Range 1
 Voltage, Thickness
@@ -128,6 +166,13 @@ Voltage, Thickness
 4.350000, 47.650
 ...
 ```
+
+### Masters Index Format
+
+The INI format includes a `Masters` field for each calibration point that represents the binary combination of masters used:
+- Each bit position represents a master (bit 0 = master 0, bit 1 = master 1, etc.)
+- Example: `Masters0=17` means binary `10001` = masters 0 and 4 were used
+- This allows for non-sequential master combinations, improving calibration flexibility
 
 ## Algorithm Details
 

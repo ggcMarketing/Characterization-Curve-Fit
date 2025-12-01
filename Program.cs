@@ -38,9 +38,20 @@ app.MapPost("/api/parse-calibration", async (HttpRequest request) =>
     return Results.Ok(new { ranges });
 });
 
+app.MapPost("/api/export-magazine", (ExportMagazineRequest req) =>
+{
+    var exporter = new FileExporter();
+    var content = req.Format == "ini" 
+        ? exporter.ExportMagazineIni(req.Masters)
+        : exporter.ExportMagazineLegacy(req.Masters);
+    
+    return Results.Ok(new { content, filename = req.Format == "ini" ? "Magazine_Optimized.mag.ini" : "Magazine_Values_Optimized.txt" });
+});
+
 app.Run();
 
 public record OptimizationRequest(double[] Masters, CalibrationRange[] Ranges, int Order, double MaxPct);
 public record CalibrationPoint(double V, double T, int Idx);
 public record CalibrationRange(int Id, CalibrationPoint[] Pts);
 public record OptimizationResult(double[] Opt, double[] Pct, double OrigRSq, double OptRSq, double Imp);
+public record ExportMagazineRequest(double[] Masters, string Format);
