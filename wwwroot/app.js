@@ -226,11 +226,11 @@ class MastersFinder {
                     <div class="btn-row">
                         <label class="btn btn-blue">
                             📂 Load Magazine Values
-                            <input type="file" accept=".txt" id="mag-file" style="display:none">
+                            <input type="file" accept=".txt,.ini" id="mag-file" style="display:none">
                         </label>
                         <label class="btn ${this.magOk ? 'btn-orange' : 'btn-gray'}" style="opacity: ${this.magOk ? 1 : 0.5}">
                             📊 Load Cal Coeffs / Cal Data
-                            <input type="file" accept=".txt,.csv" id="cal-file" style="display:none" ${!this.magOk ? 'disabled' : ''}>
+                            <input type="file" accept=".txt,.csv,.ini" id="cal-file" style="display:none" ${!this.magOk ? 'disabled' : ''}>
                         </label>
                         <button class="btn btn-gray" id="sample-btn" ${!this.magOk ? 'disabled' : ''}>🎲 Sample Data</button>
                         <div class="spacer"></div>

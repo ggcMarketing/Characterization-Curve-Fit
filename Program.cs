@@ -11,8 +11,14 @@ app.MapPost("/api/optimize", (OptimizationRequest req) =>
     return Results.Ok(result);
 });
 
-app.MapPost("/api/parse-magazine", async (IFormFile file) =>
+app.MapPost("/api/parse-magazine", async (HttpRequest request) =>
 {
+    var form = await request.ReadFormAsync();
+    var file = form.Files["file"];
+    
+    if (file == null)
+        return Results.BadRequest("No file uploaded");
+    
     using var reader = new StreamReader(file.OpenReadStream());
     var content = await reader.ReadToEndAsync();
     var parser = new DataParser();
